@@ -1,0 +1,249 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Diagnostics;
+using System.Drawing;
+using System.Text;
+using System.Windows.Forms;
+
+namespace WinFormsApp1.Custom
+{
+    public partial class ucrTodoSimple : UserControl
+    {
+        // リサイズ中かどうか
+        private bool _isResizing = false;
+
+        // ドラッグ開始時のマウス位置
+        private Point _resizeStartPoint;
+
+        // ドラッグ開始時のコントロールの高さ
+        private int _resizeStartHeight;
+
+        // 移動中かどうか
+        private bool _isMoving = false;
+
+        // ドラッグ開始時のマウス位置
+        private Point _moveStartPoint;
+
+        // ドラッグ開始時のTop
+        private int _moveStartTop;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public Control? TimeAxisReference { get; set; }
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public Control? TimeAxisStartLabel { get; set; }
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public Control? TimeAxisNextLabel { get; set; }
+
+        public ucrTodoSimple(string patientId, string patientName, string diagnosis)
+        {
+            InitializeComponent();
+
+            this.lblId.Text = patientId;
+            this.lblName.Text = patientName;
+            this.lblDiagnosis.Text = diagnosis;
+
+            // リサイズ用イベント
+            pnlResize.MouseDown += PnlResize_MouseDown;
+            pnlResize.MouseMove += PnlResize_MouseMove;
+            pnlResize.MouseUp += PnlResize_MouseUp;
+
+            // 移動用イベント
+            this.MouseDown += Todo_MouseDown;
+            this.MouseMove += Todo_MouseMove;
+            this.MouseUp += Todo_MouseUp;
+
+            pnlResize.Cursor = Cursors.SizeNS;
+            this.Cursor = Cursors.SizeAll;
+        }
+
+        private void Todo_MouseDown(object? sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left)
+                return;
+
+            _isMoving = true;
+
+            _moveStartPoint = this.PointToScreen(e.Location);
+            _moveStartTop = this.Top;
+        }
+
+        private void Todo_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (!_isMoving)
+                return;
+
+            Point currentPoint = this.PointToScreen(e.Location);
+
+            int deltaY = currentPoint.Y - _moveStartPoint.Y;
+
+            this.Top = _moveStartTop + deltaY;
+        }
+
+        private void Todo_MouseUp(object? sender, MouseEventArgs e)
+        {
+            if (!_isMoving)
+                return;
+
+            _isMoving = false;
+
+            if (Parent == null ||
+                TimeAxisStartLabel == null ||
+                TimeAxisNextLabel == null)
+            {
+                return;
+            }
+
+            // 30分あたりの実際の高さを取得
+            int baseY = Parent.PointToClient(TimeAxisStartLabel.PointToScreen(Point.Empty)).Y;
+
+            int nextY = Parent.PointToClient(TimeAxisNextLabel.PointToScreen(Point.Empty)).Y;
+
+            int unitHeight = nextY - baseY;
+
+            if (unitHeight <= 0) return;
+
+            // 移動前の所要時間を保持する
+            DateTime oldStartTime = DateTime.Parse(lblStartTime.Text);
+            DateTime oldEndTime = DateTime.Parse(lblEndTime.Text);
+
+            int durationMinutes = (int)(oldEndTime - oldStartTime).TotalMinutes;
+
+            if (durationMinutes < 0)
+                durationMinutes += 24 * 60;
+
+            // 移動先の位置から時間枠を求める
+            int relativeY = this.Top - baseY;
+
+            int newSlot = (int)Math.Floor(
+                (double)relativeY / unitHeight);
+
+            // 時間軸の基準時刻から開始時刻を直接求める
+            DateTime baseTime = DateTime.Parse(TimeAxisStartLabel.Text);
+            DateTime newStartTime = baseTime.AddMinutes(newSlot * 30);
+
+            // 表示位置を時間軸に合わせる
+            this.Top = baseY + newSlot * unitHeight;
+
+            // 開始時刻を更新
+            lblStartTime.Text = newStartTime.ToString("HH:mm");
+
+            // 終了時刻は所要時間を維持して更新
+            SetEndTime(durationMinutes);
+
+            Debug.WriteLine($"基準ラベル：{TimeAxisStartLabel.Text}");
+            Debug.WriteLine($"次のラベル：{TimeAxisNextLabel.Text}");
+            Debug.WriteLine($"baseY：{baseY}");
+            Debug.WriteLine($"nextY：{nextY}");
+            Debug.WriteLine($"unitHeight：{unitHeight}");
+            Debug.WriteLine($"this.Top：{this.Top}");
+            Debug.WriteLine($"relativeY：{relativeY}");
+            Debug.WriteLine($"newSlot：{newSlot}");
+            Debug.WriteLine($"baseTime：{baseTime:HH:mm}");
+            Debug.WriteLine($"計算後の開始時刻：{newStartTime:HH:mm}");
+        }
+
+        private void PnlResize_MouseDown(object? sender, MouseEventArgs e)
+        {
+
+
+            if (e.Button != MouseButtons.Left)
+                return;
+
+            _isResizing = true;
+
+            // マウスのスクリーン座標を記録
+            _resizeStartPoint = pnlResize.PointToScreen(e.Location);
+
+            // 現在の高さを記録
+            _resizeStartHeight = this.Height;
+
+        }
+
+        private void PnlResize_MouseUp(object? sender, MouseEventArgs e)
+        {
+            if (!_isResizing)
+                return;
+
+            _isResizing = false;
+
+            // 30分に相当する高さ
+            int unitHeight = 37;
+
+            // 現在の高さ
+            int currentHeight = this.Height;
+
+            // 30分単位で切り捨て
+            int adjustedHeight = (currentHeight / unitHeight) * unitHeight;
+
+            // 高さを確定
+            this.Height = adjustedHeight;
+
+            // 所要時間（分）を計算
+            int durationMinutes = (adjustedHeight / unitHeight) * 30;
+
+            // 終了時間を更新
+            SetEndTime(durationMinutes);
+
+        }
+
+
+        private void PnlResize_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (!_isResizing)
+                return;
+
+            // 現在のマウス位置（スクリーン座標）
+            Point currentPoint = pnlResize.PointToScreen(e.Location);
+
+            // ドラッグ開始位置からの移動量
+            int deltaY = currentPoint.Y - _resizeStartPoint.Y;
+
+            // 開始時の高さに移動量を加算
+            this.Height = Math.Max(30, _resizeStartHeight + deltaY);
+        }
+
+        public void SetEndTime(int durationMinutes)
+        {
+            // 開始時間を取得
+            DateTime startTime = DateTime.Parse(lblStartTime.Text);
+
+            // 終了時間を計算
+            DateTime endTime = startTime.AddMinutes(durationMinutes);
+
+            // 終了時間を表示
+            lblEndTime.Text = endTime.ToString("HH:mm");
+        }
+
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public DateTime StartTime 
+        {
+            get
+            {
+                return DateTime.Parse(this.lblStartTime.Text);
+            }
+            set
+            {
+                this.lblStartTime.Text = value.ToString("HH:mm");
+                }
+        }
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public DateTime EndTime
+        {
+            get
+            {
+                return DateTime.Parse(this.lblEndTime.Text);
+            }
+            set
+            {
+                this.lblEndTime.Text = value.ToString("HH:mm");
+            }
+        }
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public int TimeAxisStartY { get; set; }
+    }
+}

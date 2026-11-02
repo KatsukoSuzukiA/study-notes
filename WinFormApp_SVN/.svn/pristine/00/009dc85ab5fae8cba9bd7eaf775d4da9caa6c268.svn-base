@@ -1,0 +1,221 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Text;
+using System.Windows.Forms;
+using static WinFormsApp1.Common.Enums;
+
+namespace WinFormsApp1.Custom
+{
+    /// <summary>
+    /// ★Todo管理パネルを表すユーザーコントロール。
+    /// </summary>
+    public partial class ucrTodoPanel : UserControl
+    {
+        private TodoTypeEnum todoType;
+
+        public ucrTodoPanel()
+        {
+            InitializeComponent();
+
+            this.lblPatientId.Text = "X-99999";
+            this.lblPatientName.Text = "患者氏名";
+            this.lblAge.Text = "年齢";
+            this.lblGender.Text = "性別";
+            this.lblDiagnosis.Text = "診断";
+            this.todoType = TodoTypeEnum.Default; // デフォルトの ToDo タイプを設定
+
+            // ★ テキストボックスの入力ヒントプレースホルダーテキストを設定
+            this.txtAssistant.PlaceholderText = "助手は必須です";
+
+            // ★ コンボボックスのドロップダウンを自動的に開くイベントハンドラを設定
+            // デザイナでイベントをクリックして生成後こちらに移動
+            // 移動した場合、senderの型をobjectからobject?に変更すること
+
+            this.MouseDown += UcrTodoPanel_MouseDown;
+            this.cmbSurgeon.Enter += cmbSurgeon_Enter;
+        }
+
+        /// <summary>
+        /// フォームがロードされたときに呼び出されます。
+        /// ★ コンストラクタで外部ファイルを読み込むとデザインモードでエラーになるため、OnLoadで処理するように変更
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            // デザインモードでは初期化処理をスキップ
+            if (LicenseManager.UsageMode == LicenseUsageMode.Designtime || DesignMode)
+            {
+                return;
+            }
+
+            // フォームのロード時にスタッフ候補をappsettings.jsonから読み込み、各テキストボックスとコンボボックスに自動補完機能を設定
+            LoadStaffCandidates();
+
+            // コンボボックスの初期選択を設定
+            if (cmbSurgeon.Items.Count > 0)
+            {
+                cmbSurgeon.SelectedIndex = 0;
+            }
+        }
+
+
+        /// <summary>
+        /// ★Jsonファイルからスタッフの候補を読み込み、各テキストボックスとコンボボックスに自動補完機能を設定します。
+        /// </summary>
+        private void LoadStaffCandidates()
+        {
+            var settings = AppSettingsLoader.Load();
+
+            SetAutoComplete(cmbSurgeon, settings.Staff.Surgeons);
+            SetAutoComplete(txtAssistant, settings.Staff.Assistants);
+            SetAutoComplete(txtAnesthesia, settings.Staff.AnesthesiaStaff);
+
+        }
+
+        /// <summary>
+        /// テキストボックスに自動補完機能を設定します。
+        /// </summary>
+        /// <param name="textBox">対象テキストボックス</param>
+        /// <param name="candidates">入力候補</param>
+        private void SetAutoComplete(TextBox textBox, string[] candidates)
+        {
+            // jsonファイルから自動保管用の文字列コレクションを作成
+            var source = new AutoCompleteStringCollection();
+            source.AddRange(candidates);
+
+            textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            textBox.AutoCompleteCustomSource = source;
+        }
+
+        /// <summary>
+        /// コンボボックスに自動補完機能を設定します。
+        /// </summary>
+        /// <param name="ctrl">対象コントロール</param>
+        /// <param name="candidates">入力候補</param>
+        private void SetAutoComplete(ComboBox cmbBox, string[] candidates)
+        {
+            // jsonファイルから自動保管用の文字列コレクションを作成
+            var source = new AutoCompleteStringCollection();
+            source.AddRange(candidates);
+
+            cmbBox.Items.Clear();
+            cmbBox.Items.AddRange(candidates);
+            cmbBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            cmbBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            cmbBox.AutoCompleteCustomSource = source;
+        }
+
+
+        /// <summary>
+        /// 設定されているチェックボックスリストのToDo タイプを更新します。
+        /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public TodoTypeEnum TodoType
+        {
+            get
+            {
+                return todoType;
+            }
+            set
+            {
+                todoType = value;
+
+                this.clbTodo.Items.Clear();
+                switch (todoType)
+                {
+                    case TodoTypeEnum.Default:
+                        this.clbTodo.Items.AddRange(new object[] { "同意書署名", "アレルギー確認", "創部確認", "麻酔導入", "意識確認" });
+                        break;
+                    case TodoTypeEnum.Simple:
+                        this.clbTodo.Items.AddRange(new object[] { "同意書署名", "アレルギー確認", "意識確認" });
+                        break;
+                    default:
+                        this.clbTodo.Items.AddRange(new object[] { "同意書署名", "アレルギー確認", "創部確認", "鎮静剤投与", "麻酔導入", "意識確認" });
+                        break;
+
+                }
+            }
+        }
+
+        /// <summary>
+        /// 患者情報の繁栄
+        /// </summary>
+        /// <param name="patientId"></param>
+        /// <param name="patientName"></param>
+        /// <param name="age"></param>
+        /// <param name="gender"></param>
+        /// <param name="diagnosis"></param>
+        public void SetPatientInfo(string patientId, string patientName, int age, int gender, string diagnosis)
+        {
+            this.lblPatientId.Text = patientId;
+            this.lblPatientName.Text = patientName;
+            this.lblAge.Text = age.ToString() + " 才";
+            this.lblGender.Text = gender == 1 ? "男" : (gender == 2 ? "女" : "不明");
+            this.lblDiagnosis.Text = diagnosis;
+        }
+
+        /// <summary>
+        /// チェックリストボックスの項目のチェック状態が変更されたときに発生します。
+        /// </summary>
+        /// <param name="sender">イベントの発生元となるオブジェクト。</param>
+        /// <param name="e">項目のチェック状態の変更に関するデータを含みます。</param>
+        private void clbTodo_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            // チェック状態が変更された場合のみ処理
+            bool isCheckedBefore = clbTodo.GetItemChecked(e.Index);
+            bool isCheckedAfter = e.NewValue == CheckState.Checked;
+
+            // チェック状態が変更されていない場合は処理を終了
+            if (isCheckedBefore == isCheckedAfter) return;
+
+            // 変更後のチェック状態を取得
+            var checkedList = Enumerable.Range(0, clbTodo.Items.Count).Select(i => i == e.Index ? isCheckedAfter : clbTodo.GetItemChecked(i)).ToList();
+
+            // 項目数に応じたステータス文言
+            string[] statusTexts = clbTodo.Items.Count switch
+            {
+                3 => new[] { "同意書署名待ち", "アレルギー確認待ち", "意識確認待ち" },
+                5 => new[] { "同意書署名待ち", "アレルギー確認待ち", "創部確認待ち", "麻酔導入待ち", "意識確認待ち" },
+                6 => new[] { "同意書署名待ち", "アレルギー確認待ち", "創部確認待ち", "鎮静剤投入待ち", "麻酔導入待ち", "意識確認待ち" },
+                _ => Array.Empty<string>()
+            };
+
+            // 最初の未チェック項目を取得
+            int index = checkedList.FindIndex(checkedValue => !checkedValue);
+
+            // ステータスを更新
+            lblStatus.Text = index >= 0 && index < statusTexts.Length ? statusTexts[index] : "全項目完了";
+        }
+
+        /// <summary>
+        /// コンボボックスがフォーカスを取得したときにドロップダウンを自動的に開くイベントハンドラ。
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void cmbSurgeon_Enter(object? sender, EventArgs e)
+        {
+            cmbSurgeon.DroppedDown = true;
+        }
+
+        /// <summary>
+        /// パネルがマウスダウンされたときに発生するイベントハンドラ。
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void UcrTodoPanel_MouseDown(object? sender, MouseEventArgs e)
+        {
+            // 左クリックでドラッグを開始
+            if (e.Button == MouseButtons.Left)
+            {
+                DoDragDrop(this, DragDropEffects.Move);
+            }
+        }
+    }
+}

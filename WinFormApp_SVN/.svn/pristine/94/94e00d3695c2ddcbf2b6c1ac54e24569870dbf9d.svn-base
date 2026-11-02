@@ -1,0 +1,362 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Drawing;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using WinFormsApp1.Common;
+using WinFormsApp1.Custom;
+using static System.Net.Mime.MediaTypeNames;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
+
+namespace WinFormsApp1
+{
+
+    /// <summary>
+    /// メインウィンドウを表すフォーム。
+    /// TableLayoutPanelで大枠を作成
+    /// FlowLayoutPanelで手術室ごとのパネルを作成
+    /// トグルボタンはRadioButtonで作成
+    /// </summary>
+    /// <remarks>手術室の選択や患者IDの入力など、手術室管理の主要な操作を提供する。ラベルやパネルのレイアウト調整、入力制限などの機能を含む。</remarks>
+    public partial class frmMain : Form
+    {
+        /// <summary>
+        /// オペ室１～３のラベルをリスト化
+        /// </summary>
+        private List<RoundedLabel> TitleLabels = new List<RoundedLabel>();
+
+        /// <summary>
+        /// オペ室１～３のパネルをリスト化
+        /// </summary>
+        private List<Panel> RoomPanels = new List<Panel>();
+
+        /// <summary>
+        /// 患者リスト
+        /// </summary>
+        private static readonly IReadOnlyList<PatientEntity> DummyPaymentList = new List<PatientEntity>
+        {
+            new PatientEntity { PatientId = "M-00001", PatientName = "尾形　百之助",Gender = 1, Age = 27, Diagnosis = "骨折" },
+            new PatientEntity { PatientId = "F-00001", PatientName = "胡蝶部　明日子", Gender = 2, Age = 13, Diagnosis = "急性虫垂炎" },
+            new PatientEntity { PatientId = "U-00001", PatientName = "杉本　佐一",Gender = 3, Age = 25, Diagnosis = "火傷" }
+        };
+
+        /// <summary>
+        /// 時間ラベルリスト
+        /// </summary>
+        private List<Label> TimerLabels = new List<Label>();
+
+
+        /// <summary>
+        /// コンストラクタ
+        /// </summary>
+        public frmMain()
+        {
+            InitializeComponent();
+
+            // ラベルとパネルをリストに設定
+            this.TitleLabels.Add(this.lblRoomTitle1);
+            this.TitleLabels.Add(this.lblRoomTitle2);
+            this.TitleLabels.Add(this.lblRoomTitle3);
+            this.RoomPanels.Add(this.pnlOpeRoom1);
+            this.RoomPanels.Add(this.pnlOpeRoom2);
+            this.RoomPanels.Add(this.pnlOpeRoom3);
+
+            // オペ室パネルにドラッグ＆ドロップのイベントを設定(最初はドラッグ＆ドロップ不可)
+            this.pnlOpeRoom1.AllowDrop = false;
+            this.pnlOpeRoom1.DragEnter += OpeRoom_DragEnter;
+            this.pnlOpeRoom1.DragDrop += OpeRoom_DragDrop;
+            this.toolTip1.SetToolTip(this.txtPatientId, "患者IDは F/M/U-00001 の形式で入力してください。");
+        }
+
+
+        /// <summary>
+        /// フォームの初期化時にウィンドウ状態やコントロールのプロパティを設定します。
+        /// </summary>
+        /// <param name="sender">イベントの発生元オブジェクト。</param>
+        /// <param name="e">イベントデータを含む EventArgs。</param>
+        private void frmMain_Load(object sender, EventArgs e)
+        {
+
+            // フォームの初期状態を最大化に設定
+            this.WindowState = FormWindowState.Maximized;
+            this.StartPosition = FormStartPosition.WindowsDefaultLocation;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+
+            // TitleLabelsリストに対してとRoomPanelsリストの内容をもとに更新
+            this.TitleLabels.Zip(this.RoomPanels, (label, panel) => label.Width = panel.Width - 10).ToList();
+
+            // TimerLabelsリストに対して、Tagプロパティが"Times"のラベルを抽出して設定
+            this.TimerLabels = GetTimeLabels(this);
+
+
+        }
+
+        /// <summary>
+        /// 時間ラベルのリストを再帰的に取得します。
+        /// 親コントロール内のすべての子コントロールを検索。Tagプロパティが"Times"のラベルを収集
+        /// </summary>
+        /// <param name="parent"></param>
+        /// <returns></returns>
+        private List<Label> GetTimeLabels(Control parent)
+        {
+            var labels = new List<Label>();
+
+            foreach (Control control in parent.Controls)
+            {
+                if (control is Label label && label.Tag?.ToString() == "Times")
+                {
+                    label.BackColor = Color.LightGray; // 背景色を設定
+                    labels.Add(label);
+                }
+                // 子コントロールの中も検索
+                labels.AddRange(GetTimeLabels(control));
+            }
+            return labels;
+        }
+
+        private int GetLabelCenterY(Label label, Control target)
+        {
+            // ラベルの上座標を画面座標に変換
+            Point screenPoint = label.PointToScreen(new Point(0, label.Height));
+
+            // 比較対象のコントロールの座標に変換
+            Point targetPoint = target.PointToClient(screenPoint);
+
+            return targetPoint.Y;
+        }
+
+
+
+        /// <summary>
+        /// フォームのサイズ変更時にラベルの幅を調整します。
+        /// </summary>
+        /// <param name="sender">イベントの発生元オブジェクト。</param>
+        /// <param name="e">イベントデータを含む EventArgs。</param>
+        private void frmMain_Resize(object sender, EventArgs e)
+        {
+            // TitleLabelsリストの各ラベルの幅を、対応するRoomPanelsリストのパネルの幅に基づいて調整
+            // label.Parent!.Width(null 許容警告抑制演算子)を使用
+            this.TitleLabels.ForEach(label => label.Width = label.Parent!.Width - 10);
+
+            var todoList = this.pnlOpeRoom1.Controls.OfType<ucrTodoSimple>().ToList();
+            todoList.ForEach(todo => todo.Width = pnlOpeRoom1.Width - 10);
+            foreach (var todo in todoList)
+            {
+                var timeLabel = TimerLabels.FirstOrDefault(x => x.Text == todo.StartTime.ToString("HH:mm"));
+
+                if (timeLabel == null) continue;
+                var screenPoint = timeLabel.Parent!.PointToScreen(new Point(timeLabel.Left, timeLabel.Top));
+                var roomPoint = pnlOpeRoom1.PointToClient(screenPoint);
+                todo.Top = roomPoint.Y;
+            }
+
+        }
+
+        private int GetSelectedOpeRoom()
+        {
+            var selected = pnlSelectRoom.Controls.OfType<RadioButton>().FirstOrDefault(r => r.Checked);
+
+            return selected == null ? 0 : int.Parse(selected.Name.Replace("rdoOpeRoom", ""));
+        }
+
+
+        /// <summary>
+        /// 患者ID入力後の処理
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void txtPatientId_Leave(object sender, EventArgs e)
+        {
+            var patient = DummyPaymentList.FirstOrDefault(x => x.PatientId.Equals(txtPatientId.Text));
+
+            lblPatient.Text = patient == null ? string.Empty : string.Format("{0} 才, {1}", patient?.Age.ToString() ?? "不明", patient?.Gender == 1 ? "男性" : patient?.Gender == 2 ? "女性" : "不明");
+            lblPatientName.Text = patient == null ? string.Empty : patient.PatientName;
+        }
+
+        /// <summary>
+        /// 患者IDに基づいて患者情報を検索し、該当する場合はパネルに情報を表示します。
+        /// </summary>
+        /// <param name="sender">クリックイベントの発生元オブジェクト。</param>
+        /// <param name="e">イベントデータを含む EventArgs。</param>
+        private void btnReflection_Click(object sender, EventArgs e)
+        {
+            var patient = DummyPaymentList.FirstOrDefault(x => x.PatientId.Equals(txtPatientId.Text));
+
+            if (patient == null)
+            {
+                // 患者情報が見つからない場合の処理
+                return;
+            }
+
+            this.ucrTodoPanel1.SetPatientInfo(patient.PatientId,
+                patient.PatientName,
+                patient.Age,
+                patient.Gender,
+                patient.Diagnosis);
+
+            this.pnlOpeRoom1.AllowDrop = true;
+            this.ucrTodoPanel1.BackColor = Color.LightGreen;
+
+            Debug.WriteLine($"lblTime1000.Top = {lblTime1000.Top}");
+            Debug.WriteLine($"tlpTimeLine.Top = {tlpTimeLine.Top}");
+            Debug.WriteLine($"pnlOpeRoom1.Top = {pnlOpeRoom1.Top}");
+
+
+            Point timePoint = pnlOpeRoom1.PointToClient(lblTime1000.PointToScreen(Point.Empty));
+
+            Debug.WriteLine($"10:00の位置（pnlOpeRoom1基準）= {timePoint.Y}");
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            var hoge = AppSettingsLoader.Load();
+            MessageBox.Show($"Surgeons: {string.Join(", ", hoge.Staff.Surgeons)}\nAssistants: {string.Join(", ", hoge.Staff.Assistants)}\nAnesthesiaStaff: {string.Join(", ", hoge.Staff.AnesthesiaStaff)}");
+
+        }
+
+        /// <summary>
+        /// ドラッグ中のデータを受け入れるか判定する
+        /// </summary>
+        private void OpeRoom_DragEnter(object? sender, DragEventArgs e)
+        {
+            if (e.Data?.GetDataPresent(typeof(ucrTodoPanel)) == true)
+            {
+                e.Effect = DragDropEffects.Move;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
+        }
+
+
+        /// <summary>
+        /// オペ室１～３にドロップされたときの処理
+        /// </summary>
+        private void OpeRoom_DragDrop(object? sender, DragEventArgs e)
+        {
+            if (sender is not Panel roomPanel) return;
+
+            // ドロップされた画面上のY座標
+            int dropY = e.Y;
+            Point screenPoint = new Point(e.X, e.Y);
+            Point roomPoint = roomPanel.PointToClient(screenPoint);
+
+            // ドロップされた位置に最も近い時間ラベルを取得
+            // ★時間ラベルのTopと高さで取得すると空白部分にドロップした場合に
+            // 正しく取得できないため、ラベルの中心座標を基準にして最も近いラベルを取得
+            var timeLabel = TimerLabels.OrderBy(x =>
+                {
+                    int centerY = x.PointToScreen(Point.Empty).Y + x.Height / 2;
+                    return Math.Abs(dropY - centerY);
+                }).First();
+
+            if (timeLabel == null) return;
+
+            var patient = this.ucrTodoPanel1.Patient;
+            var todoSimple = new ucrTodoSimple(patient.PatientId, patient.PatientName, patient.Diagnosis);
+
+            todoSimple.BackColor = Color.LightBlue;
+            todoSimple.BorderStyle = BorderStyle.FixedSingle;
+            todoSimple.TimeAxisReference = timeLabel; // 時間ラベルを参照として設定
+
+            var nextTimeLabel = TimerLabels.FirstOrDefault(x => x.Top > timeLabel.Top);
+
+            todoSimple.TimeAxisStartLabel = timeLabel;
+            todoSimple.TimeAxisNextLabel = nextTimeLabel;
+
+            roomPanel.Controls.Add(todoSimple);
+
+            // timeLabelと同じY位置へ変換
+            Point labelScreenPoint = timeLabel.PointToScreen(Point.Empty);
+            Point labelRoomPoint = roomPanel.PointToClient(labelScreenPoint);
+
+            todoSimple.Top = labelRoomPoint.Y;
+            todoSimple.Width = roomPanel.Width - 10;
+            todoSimple.StartTime = DateTime.Parse(timeLabel.Text);
+            todoSimple.EndTime = todoSimple.StartTime.AddMinutes(30); // 30分後を終了時間として設定
+
+
+        }
+
+        private void frmMain_Shown(object sender, EventArgs e)
+        {
+            int[] heights = tlpTimeLine.GetRowHeights();
+
+            Debug.WriteLine($"行数：{heights.Length}");
+
+            for (int i = 0; i < heights.Length; i++)
+            {
+                Debug.WriteLine($"Row {i} : {heights[i]}px");
+            }
+        }
+
+        /// <summary>
+        /// 患者IDの入力を検証し、正しい形式でない場合はエラーメッセージを表示します。
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void txtPatientId_Validating(object sender, CancelEventArgs e)
+        {
+            if (!Regex.IsMatch(txtPatientId.Text, @"^[FMU]-\d{5}$"))
+            {
+                toolTip1.Show("患者IDは F-00001 の形式で入力してください。", txtPatientId);
+            }
+            else
+            {
+                toolTip1.Hide(txtPatientId);
+            }
+            e.Cancel = true;
+        }
+
+        /// <summary>
+        /// 先頭文字入力時大文字に変換して許容文字以外なら入力制限
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void txtPatientId_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            TextBox txt = (TextBox)sender;
+
+            // BackSpace許可
+            if (char.IsControl(e.KeyChar))
+                return;
+
+            // 先頭文字
+            if (txt.SelectionStart == 0)
+            {
+                char c = char.ToUpper(e.KeyChar);
+
+                if (c != 'F' &&
+                    c != 'M' &&
+                    c != 'U')
+                {
+                    e.Handled = true;
+                }
+            }
+
+            
+        }
+
+        /// <summary>
+        /// ハイフンの自動挿入を行う。F/M/Uの後にハイフンを自動で挿入する。
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void txtPatientId_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Back || e.KeyCode == Keys.Decimal || e.KeyCode == Keys.Left || e.KeyCode == Keys.Right)
+            {
+                return;
+            }
+
+            TextBox txt = (TextBox)sender;
+            if (txt.Text.Equals("F") || txt.Text.Equals("M") || txt.Text.Equals("U"))
+            {
+                txt.Text = txt.Text + "-";
+                txt.SelectionStart = 2;
+            }
+        }
+    }
+}
+

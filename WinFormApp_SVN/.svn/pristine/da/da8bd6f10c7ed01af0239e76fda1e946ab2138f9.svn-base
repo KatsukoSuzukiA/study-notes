@@ -1,0 +1,132 @@
+﻿namespace WinFormsApp1.Custom
+{
+    partial class ucrTodoSimple
+    {
+        /// <summary> 
+        /// 必要なデザイナー変数です。
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary> 
+        /// 使用中のリソースをすべてクリーンアップします。
+        /// </summary>
+        /// <param name="disposing">マネージド リソースを破棄する場合は true を指定し、その他の場合は false を指定します。</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region コンポーネント デザイナーで生成されたコード
+
+        /// <summary> 
+        /// デザイナー サポートに必要なメソッドです。このメソッドの内容を 
+        /// コード エディターで変更しないでください。
+        /// </summary>
+        private void InitializeComponent()
+        {
+            lblId = new Label();
+            lblName = new Label();
+            lblDiagnosis = new Label();
+            lblStartTime = new Label();
+            label1 = new Label();
+            lblEndTime = new Label();
+            pnlResize = new Panel();
+            SuspendLayout();
+            // 
+            // lblId
+            // 
+            lblId.AutoSize = true;
+            lblId.Location = new Point(9, 4);
+            lblId.Name = "lblId";
+            lblId.Size = new Size(47, 15);
+            lblId.TabIndex = 1;
+            lblId.Text = "F-99999";
+            // 
+            // lblName
+            // 
+            lblName.AutoSize = true;
+            lblName.Location = new Point(62, 4);
+            lblName.Name = "lblName";
+            lblName.Size = new Size(55, 15);
+            lblName.TabIndex = 2;
+            lblName.Text = "患者氏名";
+            // 
+            // lblDiagnosis
+            // 
+            lblDiagnosis.AutoSize = true;
+            lblDiagnosis.Location = new Point(251, 4);
+            lblDiagnosis.Name = "lblDiagnosis";
+            lblDiagnosis.Size = new Size(43, 15);
+            lblDiagnosis.TabIndex = 4;
+            lblDiagnosis.Text = "診断名";
+            // 
+            // lblStartTime
+            // 
+            lblStartTime.AutoSize = true;
+            lblStartTime.Location = new Point(154, 4);
+            lblStartTime.Name = "lblStartTime";
+            lblStartTime.Size = new Size(34, 15);
+            lblStartTime.TabIndex = 5;
+            lblStartTime.Text = "99:99";
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(190, 4);
+            label1.Name = "label1";
+            label1.Size = new Size(19, 15);
+            label1.TabIndex = 6;
+            label1.Text = "～";
+            // 
+            // lblEndTime
+            // 
+            lblEndTime.AutoSize = true;
+            lblEndTime.Location = new Point(211, 4);
+            lblEndTime.Name = "lblEndTime";
+            lblEndTime.Size = new Size(34, 15);
+            lblEndTime.TabIndex = 7;
+            lblEndTime.Text = "99:99";
+            // 
+            // pnlResize
+            // 
+            pnlResize.BackColor = Color.FromArgb(255, 224, 192);
+            pnlResize.Dock = DockStyle.Bottom;
+            pnlResize.Location = new Point(2, 32);
+            pnlResize.Name = "pnlResize";
+            pnlResize.Size = new Size(377, 3);
+            pnlResize.TabIndex = 8;
+            // 
+            // ucrTodoSimple
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            Controls.Add(pnlResize);
+            Controls.Add(lblEndTime);
+            Controls.Add(label1);
+            Controls.Add(lblStartTime);
+            Controls.Add(lblDiagnosis);
+            Controls.Add(lblName);
+            Controls.Add(lblId);
+            Cursor = Cursors.SizeNS;
+            Name = "ucrTodoSimple";
+            Padding = new Padding(2, 2, 2, 0);
+            Size = new Size(381, 35);
+            Click += ucrTodoSimple_Click;
+            ResumeLayout(false);
+            PerformLayout();
+        }
+
+        #endregion
+        private Label lblId;
+        private Label lblName;
+        private Label lblDiagnosis;
+        private Label lblStartTime;
+        private Label label1;
+        private Label lblEndTime;
+        private Panel pnlResize;
+    }
+}
