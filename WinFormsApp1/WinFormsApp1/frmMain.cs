@@ -71,7 +71,9 @@ namespace WinFormsApp1
             this.pnlOpeRoom1.DragEnter += OpeRoom_DragEnter;
             this.pnlOpeRoom1.DragDrop += OpeRoom_DragDrop;
             this.toolTip1.SetToolTip(this.txtPatientId, "患者IDは F/M/U-00001 の形式で入力してください。");
+
         }
+
 
 
         /// <summary>
@@ -231,12 +233,6 @@ namespace WinFormsApp1
             Debug.WriteLine($"10:00の位置（pnlOpeRoom1基準）= {timePoint.Y}");
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            var hoge = AppSettingsLoader.Load();
-            MessageBox.Show($"Surgeons: {string.Join(", ", hoge.Staff.Surgeons)}\nAssistants: {string.Join(", ", hoge.Staff.Assistants)}\nAnesthesiaStaff: {string.Join(", ", hoge.Staff.AnesthesiaStaff)}");
-
-        }
 
         /// <summary>
         /// ドラッグ中のデータを受け入れるか判定する
@@ -284,6 +280,7 @@ namespace WinFormsApp1
             todoSimple.BackColor = Color.LightBlue;
             todoSimple.BorderStyle = BorderStyle.FixedSingle;
             todoSimple.TimeAxisReference = timeLabel; // 時間ラベルを参照として設定
+            todoSimple.ContextMenuStrip = this.contextMenuStrip1;
 
             var nextTimeLabel = TimerLabels.FirstOrDefault(x => x.Top > timeLabel.Top);
 
@@ -329,7 +326,7 @@ namespace WinFormsApp1
                 toolTip1.Show("患者IDは F-00001 の形式で入力してください。", txtPatientId);
                 e.Cancel = true;
             }
-            
+
         }
 
         /// <summary>
@@ -396,12 +393,70 @@ namespace WinFormsApp1
             _selectedTodo.SetSelected(true);
 
             // 患者情報を検索
-            var patient = DummyPaymentList.FirstOrDefault( x => x.PatientId.Equals(todo.PatientId));
+            var patient = DummyPaymentList.FirstOrDefault(x => x.PatientId.Equals(todo.PatientId));
 
             // 右側のパネルに表示
             ucrTodoPanel1.SetPatientInfo(patient);
         }
 
+        /// <summary>
+        /// 削除ボタン押下時処理
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnDel_Click(object sender, EventArgs e)
+        {
+            this.DeleteSelectedTodo();
+        }
+
+        private void DeleteSelectedTodo()
+        {
+            // 選択中の予定がなければ終了
+            if (this._selectedTodo == null)
+            {
+                MessageBox.Show("削除する予定を選択してください。");
+                return;
+            }
+
+            // 親コントロールから削除
+            this._selectedTodo.Parent.Controls.Remove(this._selectedTodo);
+
+            // コントロールを破棄
+            this._selectedTodo.Dispose();
+
+            // 選択状態を解除
+            this._selectedTodo = null;
+        }
+
+        private void tsmDelete_Click(object sender, EventArgs e)
+        {
+            this.DeleteSelectedTodo();
+        }
+
+        /// <summary>
+        /// 右クリックメニュー表示時
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
+        {
+            // 右クリックされたコントロールを取得
+            Control? control = this.contextMenuStrip1.SourceControl;
+
+            // ucrTodoSimple 自体、またはその内部のコントロールから
+            // 右クリックされた予定を特定する
+            while (control != null && control is not ucrTodoSimple)
+            {
+                control = control.Parent;
+            }
+
+            // 右クリックした予定を選択状態にする
+            if (control is ucrTodoSimple todo)
+            {
+                // 既存の選択処理がある場合は、そちらを利用する
+                this._selectedTodo = todo;
+            }
+        }
     }
 }
 

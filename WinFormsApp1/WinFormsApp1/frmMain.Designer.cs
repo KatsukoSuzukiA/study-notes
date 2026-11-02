@@ -33,12 +33,12 @@ namespace WinFormsApp1
             components = new System.ComponentModel.Container();
             tlpRoomControl = new TableLayoutPanel();
             pnlButtom = new Panel();
-            button1 = new Button();
+            btnDel = new Button();
             flpRightControl = new Panel();
             ucrTodoPanel1 = new ucrTodoPanel();
             panel1 = new Panel();
-            txtPatientId = new TextBox();
             btnReflection = new Button();
+            txtPatientId = new TextBox();
             lblPatientName = new Label();
             lblPatient = new Label();
             label2 = new Label();
@@ -77,6 +77,8 @@ namespace WinFormsApp1
             lblRoomTitle3 = new RoundedLabel();
             lblTime1700 = new Label();
             toolTip1 = new ToolTip(components);
+            contextMenuStrip1 = new ContextMenuStrip(components);
+            tsmDelete = new ToolStripMenuItem();
             tlpRoomControl.SuspendLayout();
             pnlButtom.SuspendLayout();
             flpRightControl.SuspendLayout();
@@ -86,6 +88,7 @@ namespace WinFormsApp1
             pnlOpeRoom1.SuspendLayout();
             pnlOpeRoom2.SuspendLayout();
             pnlOpeRoom3.SuspendLayout();
+            contextMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // tlpRoomControl
@@ -118,22 +121,22 @@ namespace WinFormsApp1
             // 
             pnlButtom.BackColor = Color.FromArgb(192, 192, 255);
             tlpRoomControl.SetColumnSpan(pnlButtom, 5);
-            pnlButtom.Controls.Add(button1);
+            pnlButtom.Controls.Add(btnDel);
             pnlButtom.Dock = DockStyle.Fill;
             pnlButtom.Location = new Point(3, 484);
             pnlButtom.Name = "pnlButtom";
             pnlButtom.Size = new Size(1027, 144);
             pnlButtom.TabIndex = 0;
             // 
-            // button1
+            // btnDel
             // 
-            button1.Location = new Point(237, 30);
-            button1.Name = "button1";
-            button1.Size = new Size(145, 40);
-            button1.TabIndex = 0;
-            button1.Text = "button1";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
+            btnDel.Location = new Point(45, 65);
+            btnDel.Name = "btnDel";
+            btnDel.Size = new Size(145, 40);
+            btnDel.TabIndex = 0;
+            btnDel.Text = "削除";
+            btnDel.UseVisualStyleBackColor = true;
+            btnDel.Click += btnDel_Click;
             // 
             // flpRightControl
             // 
@@ -169,6 +172,16 @@ namespace WinFormsApp1
             panel1.Size = new Size(340, 64);
             panel1.TabIndex = 1;
             // 
+            // btnReflection
+            // 
+            btnReflection.Location = new Point(195, 29);
+            btnReflection.Name = "btnReflection";
+            btnReflection.Size = new Size(116, 30);
+            btnReflection.TabIndex = 8;
+            btnReflection.Text = "反映";
+            btnReflection.UseVisualStyleBackColor = true;
+            btnReflection.Click += btnReflection_Click;
+            // 
             // txtPatientId
             // 
             txtPatientId.CharacterCasing = CharacterCasing.Upper;
@@ -182,16 +195,6 @@ namespace WinFormsApp1
             txtPatientId.KeyUp += txtPatientId_KeyUp;
             txtPatientId.Leave += txtPatientId_Leave;
             txtPatientId.Validating += txtPatientId_Validating;
-            // 
-            // btnReflection
-            // 
-            btnReflection.Location = new Point(195, 29);
-            btnReflection.Name = "btnReflection";
-            btnReflection.Size = new Size(116, 30);
-            btnReflection.TabIndex = 8;
-            btnReflection.Text = "反映";
-            btnReflection.UseVisualStyleBackColor = true;
-            btnReflection.Click += btnReflection_Click;
             // 
             // lblPatientName
             // 
@@ -645,6 +648,20 @@ namespace WinFormsApp1
             lblTime1700.Text = "17:00";
             lblTime1700.TextAlign = ContentAlignment.TopCenter;
             // 
+            // contextMenuStrip1
+            // 
+            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { tsmDelete });
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.Size = new Size(99, 26);
+            contextMenuStrip1.Opening += contextMenuStrip1_Opening;
+            // 
+            // tsmDelete
+            // 
+            tsmDelete.Name = "tsmDelete";
+            tsmDelete.Size = new Size(98, 22);
+            tsmDelete.Text = "削除";
+            tsmDelete.Click += tsmDelete_Click;
+            // 
             // frmMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -669,6 +686,7 @@ namespace WinFormsApp1
             pnlOpeRoom1.ResumeLayout(false);
             pnlOpeRoom2.ResumeLayout(false);
             pnlOpeRoom3.ResumeLayout(false);
+            contextMenuStrip1.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -713,12 +731,14 @@ namespace WinFormsApp1
         private RadioButton tglOpeTypeDefault;
         private RadioButton tglOpeTypeSimple;
         private RadioButton tglOpeTypeFull;
-        private Button button1;
+        private Button btnDel;
         private ucrTodoPanel ucrTodoPanel1;
         private Panel pnlOpeRoom1;
         private FlowLayoutPanel pnlOpeRoom2;
         private FlowLayoutPanel pnlOpeRoom3;
         private TextBox txtPatientId;
         private ToolTip toolTip1;
+        private ContextMenuStrip contextMenuStrip1;
+        private ToolStripMenuItem tsmDelete;
     }
 }
