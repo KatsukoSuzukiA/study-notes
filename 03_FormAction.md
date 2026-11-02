@@ -172,3 +172,28 @@ Cursors.SizeNS
 Cursors.SizeWE
 Cursors.SizeNWSE
 ```
+---
+
+#### 3.7 右クリックメニュー（ContextMenuStrip）
+
+配置したユーザーコントロールを右クリックしたときに、削除などのメニューを表示する。
+
+##### 設定のポイント
+
+- `ContextMenuStrip` を追加するのは、メニューを管理する `frmMain` 側。
+- `UserControl` を継承したクラスには、`ContextMenuStrip` プロパティが最初から用意されている。`ucrTodoSimple` 側で独自に追加する必要はない。
+- 削除対象のコントロールを `new` した後、フォーム側で作成した `ContextMenuStrip` を割り当てる。
+
+##### 設定例
+
+```csharp
+// frmMainで削除対象のコントロールを作成した後
+ucrTodoSimple todoSimple = new ucrTodoSimple();
+
+// frmMain側のContextMenuStripを紐づける
+todoSimple.ContextMenuStrip = this.contextMenuStrip1;
+```
+
+##### 動作確認時の注意点
+
+右クリックメニューを表示しただけでは、削除対象のコントロールが選択状態になっていない場合がある。削除処理が選択状態を前提としているなら、右クリックしたコントロールを削除対象として扱えるようにする必要がある。
